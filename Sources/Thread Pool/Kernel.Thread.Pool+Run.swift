@@ -89,6 +89,7 @@ extension Kernel.Thread.Pool {
         return result
     }
 
+    @_disfavoredOverload
     nonisolated(nonsending)
         public func run<T: ~Copyable, E: Swift.Error>(
             timeout: Duration? = nil,
