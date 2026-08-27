@@ -23,26 +23,26 @@ let package = Package(
         .library(name: "Threads", targets: ["Threads"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/swift-foundations/swift-kernel.git", branch: "main"),
-        .package(url: "https://github.com/swift-foundations/swift-executors.git", branch: "main"),
+        .package(url: "https://github.com/swift-compositions/swift-kernel.git", branch: "main"),
+        .package(url: "https://github.com/swift-compositions/swift-executors.git", branch: "main"),
         .package(
-            url: "https://github.com/swift-foundations/swift-synchronizers.git",
+            url: "https://github.com/swift-compositions/swift-synchronizers.git",
             branch: "main"
         ),
         .package(
-            url: "https://github.com/swift-primitives/swift-async-primitives.git",
+            url: "https://github.com/swift-molecules/swift-async.git",
             branch: "main"
         ),
         .package(
-            url: "https://github.com/swift-primitives/swift-cardinal-primitives.git",
+            url: "https://github.com/swift-molecules/swift-cardinal.git",
             branch: "main"
         ),
         .package(
-            url: "https://github.com/swift-primitives/swift-either-primitives.git",
+            url: "https://github.com/swift-molecules/swift-either.git",
             branch: "main"
         ),
         .package(
-            url: "https://github.com/swift-primitives/swift-ownership-primitives.git",
+            url: "https://github.com/swift-molecules/swift-ownership.git",
             branch: "main"
         ),
     ],
@@ -77,16 +77,16 @@ let package = Package(
             name: "Thread Pool",
             dependencies: [
                 .product(name: "Executors", package: "swift-executors"),
-                .product(name: "Async Semaphore Primitives", package: "swift-async-primitives"),
-                .product(name: "Cardinal Add Primitives", package: "swift-cardinal-primitives"),
-                .product(name: "Cardinal Carrier Primitives", package: "swift-cardinal-primitives"),
-                .product(name: "Cardinal Primitive", package: "swift-cardinal-primitives"),
+                .product(name: "Async Semaphore", package: "swift-async"),
+                .product(name: "Cardinal Add", package: "swift-cardinal"),
+                .product(name: "Cardinal Carrier", package: "swift-cardinal"),
+                .product(name: "Cardinal Primitive", package: "swift-cardinal"),
                 .product(
-                    name: "Cardinal Primitives Standard Library Integration",
-                    package: "swift-cardinal-primitives"
+                    name: "Cardinal Standard Library Integration",
+                    package: "swift-cardinal"
                 ),
-                .product(name: "Either Primitives", package: "swift-either-primitives"),
-                .product(name: "Ownership Latch Primitives", package: "swift-ownership-primitives"),
+                .product(name: "Either", package: "swift-either"),
+                .product(name: "Ownership Latch", package: "swift-ownership"),
                 .product(name: "Synchronizer Blocking", package: "swift-synchronizers"),
             ]
         ),
@@ -122,7 +122,7 @@ let package = Package(
             dependencies: [
                 "Thread Pool",
                 "Thread Gate",
-                .product(name: "Async Semaphore Primitives", package: "swift-async-primitives"),
+                .product(name: "Async Semaphore", package: "swift-async"),
                 .product(name: "Kernel Test Support", package: "swift-kernel"),
             ]
         ),

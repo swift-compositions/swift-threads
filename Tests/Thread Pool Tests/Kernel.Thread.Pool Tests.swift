@@ -1,5 +1,5 @@
-import Async_Semaphore_Primitives
-import Either_Primitives
+import Async_Semaphore
+import Either
 import Kernel_Test_Support
 import Testing
 import Thread_Gate

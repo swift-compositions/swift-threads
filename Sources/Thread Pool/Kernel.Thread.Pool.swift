@@ -1,6 +1,6 @@
-internal import Async_Semaphore_Primitives
-internal import Cardinal_Add_Primitives
-internal import Cardinal_Primitives_Standard_Library_Integration
+internal import Async_Semaphore
+internal import Cardinal_Add
+internal import Cardinal_Standard_Library_Integration
 
 extension Kernel.Thread {
 

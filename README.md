@@ -2,15 +2,15 @@
 
 ![Development Status](https://img.shields.io/badge/status-active--development-blue.svg)
 
-Thread-layer compositions for Swift. Houses composed types that build on `Kernel.Thread` primitives but are neither raw syscall wrappers (that's swift-kernel) nor Swift Executor protocol conformances (that's swift-executors). Layer 3 (Foundations) of the Swift Institute five-layer architecture.
+Thread-layer compositions for Swift. Houses composed types that build on `Kernel.Thread` primitives but are neither raw syscall wrappers (that's swift-kernel) nor Swift Executor protocol conformances (that's swift-executors). Layer 4 (Compositions) of the Swift Institute four-layer architecture.
 
 ---
 
 ## Package mission
 
-- **swift-kernel** (L3): thin syscall-adjacent wrappers over L1 primitives
-- **swift-executors** (L3): types that ARE Swift Executors (`SerialExecutor`, `TaskExecutor`)
-- **swift-threads** (L3, this package): thread-layer compositions — admission, coordination, worker patterns
+- **swift-kernel** (L4): thin syscall-adjacent wrappers over L1 atoms
+- **swift-executors** (L4): types that ARE Swift Executors (`SerialExecutor`, `TaskExecutor`)
+- **swift-threads** (L4, this package): thread-layer compositions — admission, coordination, worker patterns
 
 ---
 
@@ -29,7 +29,7 @@ Thread-layer compositions for Swift. Houses composed types that build on `Kernel
 | `Thread Actor` | `Kernel.Thread.Actor` (executor-backed actor) |
 | `Threads` | umbrella re-exporting all of the above |
 
-The underlying synchronization substrate (`Synchronizer.Blocking<N>` — mutex + N condvars) lives in the sibling [`swift-synchronizers`](../swift-synchronizers) L3 package. swift-threads consumes it directly via the `Synchronizer Blocking` product.
+The underlying synchronization substrate (`Synchronizer.Blocking<N>` — mutex + N condvars) lives in the sibling [`swift-synchronizers`](../swift-synchronizers) L4 package. swift-threads consumes it directly via the `Synchronizer Blocking` product.
 
 ---
 

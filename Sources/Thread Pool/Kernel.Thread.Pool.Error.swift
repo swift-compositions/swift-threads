@@ -1,4 +1,4 @@
-internal import Async_Semaphore_Primitives
+internal import Async_Semaphore
 
 extension Kernel.Thread.Pool {
 
