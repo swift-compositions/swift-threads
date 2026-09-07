@@ -1,6 +1,6 @@
 internal import Async_Semaphore
 public import Either
-internal import Ownership_Latch
+internal import Ownership
 
 extension Kernel.Thread.Pool {
 

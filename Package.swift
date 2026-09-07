@@ -86,7 +86,7 @@ let package = Package(
                     package: "swift-cardinal"
                 ),
                 .product(name: "Either", package: "swift-either"),
-                .product(name: "Ownership Latch", package: "swift-ownership"),
+                .product(name: "Ownership", package: "swift-ownership"),
                 .product(name: "Synchronizer Blocking", package: "swift-synchronizers"),
             ]
         ),
