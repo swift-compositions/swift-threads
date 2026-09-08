@@ -30,11 +30,11 @@ let package = Package(
             branch: "main"
         ),
         .package(
-            url: "https://github.com/swift-molecules/swift-async.git",
+            url: "https://github.com/swift-molecules/swift-async-semaphore.git",
             branch: "main"
         ),
         .package(
-            url: "https://github.com/swift-molecules/swift-cardinal.git",
+            url: "https://github.com/swift-atoms/swift-cardinal.git",
             branch: "main"
         ),
         .package(
@@ -77,14 +77,8 @@ let package = Package(
             name: "Thread Pool",
             dependencies: [
                 .product(name: "Executors", package: "swift-executors"),
-                .product(name: "Async Semaphore", package: "swift-async"),
-                .product(name: "Cardinal Add", package: "swift-cardinal"),
-                .product(name: "Cardinal Carrier", package: "swift-cardinal"),
-                .product(name: "Cardinal Primitive", package: "swift-cardinal"),
-                .product(
-                    name: "Cardinal Standard Library Integration",
-                    package: "swift-cardinal"
-                ),
+                .product(name: "Async Semaphore", package: "swift-async-semaphore"),
+                .product(name: "Cardinal", package: "swift-cardinal"),
                 .product(name: "Either", package: "swift-either"),
                 .product(name: "Ownership", package: "swift-ownership"),
                 .product(name: "Synchronizer Blocking", package: "swift-synchronizers"),
@@ -122,7 +116,7 @@ let package = Package(
             dependencies: [
                 "Thread Pool",
                 "Thread Gate",
-                .product(name: "Async Semaphore", package: "swift-async"),
+                .product(name: "Async Semaphore", package: "swift-async-semaphore"),
                 .product(name: "Kernel Test Support", package: "swift-kernel"),
             ]
         ),

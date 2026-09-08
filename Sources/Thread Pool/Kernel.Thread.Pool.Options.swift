@@ -1,6 +1,4 @@
-internal import Cardinal_Add
-internal import Cardinal_Carrier
-public import Cardinal_Primitive
+public import Cardinal
 
 extension Kernel.Thread.Pool {
 
