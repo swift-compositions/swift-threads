@@ -52,7 +52,7 @@ extension Kernel.Thread.Semaphore {
         sync.lock()
         defer { sync.unlock() }
 
-        let deadline = Clock.Continuous.now.advanced(by: duration)
+        let deadline = Clock.Continuous.now.offset + duration
 
         while true {
             if _state.lifecycle != .open {
@@ -70,7 +70,7 @@ extension Kernel.Thread.Semaphore {
                 }
                 return true
             }
-            let remaining = deadline - Clock.Continuous.now
+            let remaining = deadline - Clock.Continuous.now.offset
             if remaining <= .zero {
                 _state.metrics.timeouts += 1
                 return false

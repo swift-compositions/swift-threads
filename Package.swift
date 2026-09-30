@@ -25,6 +25,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/swift-compositions/swift-kernel.git", branch: "main"),
         .package(url: "https://github.com/swift-compositions/swift-executors.git", branch: "main"),
+        .package(url: "https://github.com/swift-atoms/swift-finite.git", branch: "main", traits: ["Tagged"]),
         .package(
             url: "https://github.com/swift-compositions/swift-synchronizers.git",
             branch: "main"
