@@ -97,7 +97,7 @@ extension Kernel.Thread.Pool.Test.`Edge Case` {
                 return nil
             }
         }
-        #expect(started.wait(timeout: .seconds(5)))
+        #expect(await started.opened(within: .seconds(5)))
 
         let second = Task { () -> Int? in
             do throws(Kernel.Thread.Pool.Error) {
@@ -148,9 +148,9 @@ extension Kernel.Thread.Pool.Test.`Edge Case` {
             }
         }
 
-        #expect(started.wait(timeout: .seconds(5)))
+        #expect(await started.opened(within: .seconds(5)))
         request.cancel()
-        #expect(finished.wait(timeout: .milliseconds(200)))
+        #expect(await finished.opened(within: .milliseconds(200)))
         #expect(await request.value == .cancelled)
         #expect(census.withLocked { $0 } == 0)
 
@@ -182,7 +182,7 @@ extension Kernel.Thread.Pool.Test.`Edge Case` {
                 return nil
             }
         }
-        #expect(firstStarted.wait(timeout: .seconds(5)))
+        #expect(await firstStarted.opened(within: .seconds(5)))
 
         let second = Task { () -> Kernel.Thread.Pool.Error? in
             defer { secondFinished.open() }
@@ -203,9 +203,9 @@ extension Kernel.Thread.Pool.Test.`Edge Case` {
             Issue.record("Deadline observation was cancelled")
         }
         firstRelease.open()
-        #expect(secondStarted.wait(timeout: .seconds(5)))
+        #expect(await secondStarted.opened(within: .seconds(5)))
 
-        #expect(secondFinished.wait(timeout: .milliseconds(400)))
+        #expect(await secondFinished.opened(within: .milliseconds(400)))
         #expect(await second.value == .timeout)
         secondRelease.open()
         let value = await first.value
@@ -235,7 +235,7 @@ extension Kernel.Thread.Pool.Test.`Edge Case` {
                 return nil
             }
         }
-        #expect(firstStarted.wait(timeout: .seconds(5)))
+        #expect(await firstStarted.opened(within: .seconds(5)))
 
         let second = Task { () -> Kernel.Thread.Pool.Error? in
             defer { secondFinished.open() }
@@ -251,7 +251,7 @@ extension Kernel.Thread.Pool.Test.`Edge Case` {
         }
         await Kernel.Thread.Pool.Test.Admission.wait(in: pool)
 
-        #expect(secondFinished.wait(timeout: .milliseconds(500)))
+        #expect(await secondFinished.opened(within: .milliseconds(500)))
         #expect(await second.value == .timeout)
         #expect(!secondStarted.isOpen)
 
@@ -295,7 +295,7 @@ extension Kernel.Thread.Pool.Test.`Edge Case` {
                 return nil
             }
         }
-        #expect(firstStarted.wait(timeout: .seconds(5)))
+        #expect(await firstStarted.opened(within: .seconds(5)))
 
         let second = Task { () -> Kernel.Thread.Pool.Error? in
             defer { secondFinished.open() }
@@ -312,7 +312,7 @@ extension Kernel.Thread.Pool.Test.`Edge Case` {
         await Kernel.Thread.Pool.Test.Admission.wait(in: pool)
         second.cancel()
 
-        #expect(secondFinished.wait(timeout: .milliseconds(200)))
+        #expect(await secondFinished.opened(within: .milliseconds(200)))
         #expect(await second.value == .cancelled)
         #expect(!secondStarted.isOpen)
 
@@ -357,19 +357,19 @@ extension Kernel.Thread.Pool.Test.`Edge Case` {
                 return error
             }
         }
-        #expect(started.wait(timeout: .seconds(5)))
+        #expect(await started.opened(within: .seconds(5)))
 
         let shutdown = Task.detached {
             pool.shutdown()
             shutdownFinished.open()
         }
 
-        #expect(requestFinished.wait(timeout: .milliseconds(200)))
+        #expect(await requestFinished.opened(within: .milliseconds(200)))
         #expect(await request.value == .shutdown)
-        #expect(!shutdownFinished.wait(timeout: .milliseconds(200)))
+        #expect(!(await shutdownFinished.opened(within: .milliseconds(200))))
 
         release.open()
-        #expect(shutdownFinished.wait(timeout: .seconds(5)))
+        #expect(await shutdownFinished.opened(within: .seconds(5)))
         await shutdown.value
     }
 
@@ -398,7 +398,7 @@ extension Kernel.Thread.Pool.Test.`Edge Case` {
                 return error
             }
         }
-        #expect(firstStarted.wait(timeout: .seconds(5)))
+        #expect(await firstStarted.opened(within: .seconds(5)))
 
         let second = Task { () -> Kernel.Thread.Pool.Error? in
             defer { secondFinished.open() }
@@ -419,15 +419,15 @@ extension Kernel.Thread.Pool.Test.`Edge Case` {
             shutdownFinished.open()
         }
 
-        #expect(firstFinished.wait(timeout: .milliseconds(200)))
-        #expect(secondFinished.wait(timeout: .milliseconds(200)))
+        #expect(await firstFinished.opened(within: .milliseconds(200)))
+        #expect(await secondFinished.opened(within: .milliseconds(200)))
         #expect(await first.value == .shutdown)
         #expect(await second.value == .shutdown)
         #expect(!secondStarted.isOpen)
-        #expect(!shutdownFinished.wait(timeout: .milliseconds(200)))
+        #expect(!(await shutdownFinished.opened(within: .milliseconds(200))))
 
         firstRelease.open()
-        #expect(shutdownFinished.wait(timeout: .seconds(5)))
+        #expect(await shutdownFinished.opened(within: .seconds(5)))
         await shutdown.value
     }
 }
