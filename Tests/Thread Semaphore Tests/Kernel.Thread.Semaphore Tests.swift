@@ -3,7 +3,9 @@ import Testing
 import Thread_Gate
 import Thread_Semaphore
 
-extension Kernel.Thread.Semaphore {
+enum `Kernel.Thread.Semaphore Tests` {}
+
+extension `Kernel.Thread.Semaphore Tests` {
 
     @Suite
     struct Test {
