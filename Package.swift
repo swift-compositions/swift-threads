@@ -95,28 +95,28 @@ let package = Package(
         .target(
             name: "Threads",
             dependencies: [
-                "Thread Barrier",
-                "Thread Gate",
-                "Thread Semaphore",
-                "Thread Worker",
-                "Thread Pool",
-                "Thread Actor",
+                .target(name: "Thread Barrier"),
+                .target(name: "Thread Gate"),
+                .target(name: "Thread Semaphore"),
+                .target(name: "Thread Worker"),
+                .target(name: "Thread Pool"),
+                .target(name: "Thread Actor"),
             ]
         ),
 
         .testTarget(
             name: "Thread Semaphore Tests",
             dependencies: [
-                "Thread Semaphore",
-                "Thread Gate",
+                .target(name: "Thread Semaphore"),
+                .target(name: "Thread Gate"),
                 .product(name: "Kernel Test Support", package: "swift-kernel"),
             ]
         ),
         .testTarget(
             name: "Thread Pool Tests",
             dependencies: [
-                "Thread Pool",
-                "Thread Gate",
+                .target(name: "Thread Pool"),
+                .target(name: "Thread Gate"),
                 .product(name: "Async Semaphore", package: "swift-async-semaphore"),
                 .product(name: "Kernel Test Support", package: "swift-kernel"),
             ]
