@@ -110,372 +110,374 @@ extension `Kernel.Thread.Semaphore Tests` {
             }
         }
 
-        @Suite
-        struct `Blocking` {
+    }
+}
 
-            @Test
-            func `acquire blocks when exhausted then succeeds on release`() throws {
-                let semaphore = Kernel.Thread.Semaphore(capacity: 1)
-                let firstAcquired = Kernel.Thread.Gate()
-                let allowRelease = Kernel.Thread.Gate()
-                let secondAcquired = Kernel.Thread.Gate()
+extension `Kernel.Thread.Semaphore Tests`.Test {
+    @Suite
+    struct `Blocking` {
 
-                let t1 = try Kernel.Thread.spawn {
-                    do throws(Kernel.Thread.Semaphore.Error) {
-                        _ = try semaphore.run {
-                            firstAcquired.open()
-                            allowRelease.wait()
-                        }
-                    } catch {
+        @Test
+        func `acquire blocks when exhausted then succeeds on release`() throws {
+            let semaphore = Kernel.Thread.Semaphore(capacity: 1)
+            let firstAcquired = Kernel.Thread.Gate()
+            let allowRelease = Kernel.Thread.Gate()
+            let secondAcquired = Kernel.Thread.Gate()
 
+            let t1 = try Kernel.Thread.spawn {
+                do throws(Kernel.Thread.Semaphore.Error) {
+                    _ = try semaphore.run {
+                        firstAcquired.open()
+                        allowRelease.wait()
                     }
+                } catch {
+
                 }
-
-                firstAcquired.wait()
-                #expect(semaphore.metrics.outstanding == 1)
-                #expect(semaphore.metrics.available == 0)
-
-                let t2 = try Kernel.Thread.spawn {
-                    do throws(Kernel.Thread.Semaphore.Error) {
-                        _ = try semaphore.run {
-                            secondAcquired.open()
-                        }
-                    } catch {
-
-                    }
-                }
-
-                #expect(!secondAcquired.wait(timeout: .milliseconds(50)))
-                #expect(semaphore.metrics.waiters > 0)
-
-                allowRelease.open()
-
-                #expect(secondAcquired.wait(timeout: .seconds(1)))
-                #expect(semaphore.metrics.acquisitions == 2)
-
-                try t1.join()
-                try t2.join()
             }
+
+            firstAcquired.wait()
+            #expect(semaphore.metrics.outstanding == 1)
+            #expect(semaphore.metrics.available == 0)
+
+            let t2 = try Kernel.Thread.spawn {
+                do throws(Kernel.Thread.Semaphore.Error) {
+                    _ = try semaphore.run {
+                        secondAcquired.open()
+                    }
+                } catch {
+
+                }
+            }
+
+            #expect(!secondAcquired.wait(timeout: .milliseconds(50)))
+            #expect(semaphore.metrics.waiters > 0)
+
+            allowRelease.open()
+
+            #expect(secondAcquired.wait(timeout: .seconds(1)))
+            #expect(semaphore.metrics.acquisitions == 2)
+
+            try t1.join()
+            try t2.join()
+        }
+    }
+
+    @Suite
+    struct `Timeout` {
+
+        @Test
+        func `timeout returns nil after duration`() throws {
+            let semaphore = Kernel.Thread.Semaphore(capacity: 1)
+            let holding = Kernel.Thread.Gate()
+            let released = Kernel.Thread.Gate()
+
+            let t1 = try Kernel.Thread.spawn {
+                do throws(Kernel.Thread.Semaphore.Error) {
+                    _ = try semaphore.run {
+                        holding.open()
+                        released.wait()
+                    }
+                } catch {
+
+                }
+            }
+
+            holding.wait()
+
+            let timeout = semaphore.run.timeout(.milliseconds(50))
+            let result = try timeout { 42 }
+
+            #expect(result == nil)
+            #expect(semaphore.metrics.timeouts == 1)
+
+            released.open()
+            try t1.join()
         }
 
-        @Suite
-        struct `Timeout` {
+        @Test
+        func `acquisition succeeds if permit available at deadline`() throws {
+            let semaphore = Kernel.Thread.Semaphore(capacity: 1)
 
-            @Test
-            func `timeout returns nil after duration`() throws {
-                let semaphore = Kernel.Thread.Semaphore(capacity: 1)
-                let holding = Kernel.Thread.Gate()
-                let released = Kernel.Thread.Gate()
+            let timeout = semaphore.run.timeout(.milliseconds(100))
+            let result = try timeout { 42 }
 
-                let t1 = try Kernel.Thread.spawn {
-                    do throws(Kernel.Thread.Semaphore.Error) {
-                        _ = try semaphore.run {
-                            holding.open()
-                            released.wait()
-                        }
-                    } catch {
+            #expect(result == 42)
+        }
+    }
 
-                    }
-                }
+    @Suite
+    struct `Shutdown` {
 
-                holding.wait()
+        @Test
+        func `shutdown rejects new runs`() throws {
+            let semaphore = Kernel.Thread.Semaphore(capacity: 1)
 
-                let timeout = semaphore.run.timeout(.milliseconds(50))
-                let result = try timeout { 42 }
+            semaphore.shutdown()
 
-                #expect(result == nil)
-                #expect(semaphore.metrics.timeouts == 1)
-
-                released.open()
-                try t1.join()
+            #expect(throws: Kernel.Thread.Semaphore.Error.shutdown) {
+                try semaphore.run { 42 }
             }
 
-            @Test
-            func `acquisition succeeds if permit available at deadline`() throws {
-                let semaphore = Kernel.Thread.Semaphore(capacity: 1)
-
-                let timeout = semaphore.run.timeout(.milliseconds(100))
-                let result = try timeout { 42 }
-
-                #expect(result == 42)
-            }
+            #expect(semaphore.metrics.rejected == 1)
         }
 
-        @Suite
-        struct `Shutdown` {
+        @Test
+        func `shutdown.wait returns when outstanding reaches zero`() throws {
+            let semaphore = Kernel.Thread.Semaphore(capacity: 1)
+            let acquired = Kernel.Thread.Gate()
+            let canRelease = Kernel.Thread.Gate()
+            let shutdownComplete = Kernel.Thread.Gate()
 
-            @Test
-            func `shutdown rejects new runs`() throws {
-                let semaphore = Kernel.Thread.Semaphore(capacity: 1)
+            let t1 = try Kernel.Thread.spawn {
+                do throws(Kernel.Thread.Semaphore.Error) {
+                    _ = try semaphore.run {
+                        acquired.open()
+                        canRelease.wait()
+                    }
+                } catch {
 
-                semaphore.shutdown()
-
-                #expect(throws: Kernel.Thread.Semaphore.Error.shutdown) {
-                    try semaphore.run { 42 }
                 }
-
-                #expect(semaphore.metrics.rejected == 1)
             }
 
-            @Test
-            func `shutdown.wait returns when outstanding reaches zero`() throws {
-                let semaphore = Kernel.Thread.Semaphore(capacity: 1)
-                let acquired = Kernel.Thread.Gate()
-                let canRelease = Kernel.Thread.Gate()
-                let shutdownComplete = Kernel.Thread.Gate()
+            acquired.wait()
 
-                let t1 = try Kernel.Thread.spawn {
-                    do throws(Kernel.Thread.Semaphore.Error) {
-                        _ = try semaphore.run {
-                            acquired.open()
-                            canRelease.wait()
-                        }
-                    } catch {
-
-                    }
-                }
-
-                acquired.wait()
-
-                let t2 = try Kernel.Thread.spawn {
-                    semaphore.shutdown.wait()
-                    shutdownComplete.open()
-                }
-
-                #expect(!shutdownComplete.wait(timeout: .milliseconds(50)))
-
-                canRelease.open()
-
-                #expect(shutdownComplete.wait(timeout: .seconds(1)))
-
-                try t1.join()
-                try t2.join()
+            let t2 = try Kernel.Thread.spawn {
+                semaphore.shutdown.wait()
+                shutdownComplete.open()
             }
 
-            @Test
-            func `shutdown wakes blocked waiters`() throws {
-                let semaphore = Kernel.Thread.Semaphore(capacity: 1)
-                let acquired = Kernel.Thread.Gate()
-                let waiterDone = Kernel.Thread.Gate()
-                let holdingRelease = Kernel.Thread.Gate()
+            #expect(!shutdownComplete.wait(timeout: .milliseconds(50)))
 
-                final class Box: @unchecked Sendable { var caught = false }
-                let box = Box()
+            canRelease.open()
 
-                let t1 = try Kernel.Thread.spawn {
-                    do throws(Kernel.Thread.Semaphore.Error) {
-                        _ = try semaphore.run {
-                            acquired.open()
-                            holdingRelease.wait()
-                        }
-                    } catch {
+            #expect(shutdownComplete.wait(timeout: .seconds(1)))
 
-                    }
-                }
-
-                acquired.wait()
-
-                let t2 = try Kernel.Thread.spawn {
-                    do throws(Kernel.Thread.Semaphore.Error) {
-                        _ = try semaphore.run {}
-                    } catch .shutdown {
-                        box.caught = true
-                    } catch {
-
-                    }
-                    waiterDone.open()
-                }
-
-                #expect(!waiterDone.wait(timeout: .milliseconds(50)))
-
-                semaphore.shutdown()
-
-                #expect(waiterDone.wait(timeout: .seconds(1)))
-                #expect(box.caught)
-
-                holdingRelease.open()
-
-                try t1.join()
-                try t2.join()
-            }
+            try t1.join()
+            try t2.join()
         }
 
-        @Suite
-        struct `Cancellation` {
+        @Test
+        func `shutdown wakes blocked waiters`() throws {
+            let semaphore = Kernel.Thread.Semaphore(capacity: 1)
+            let acquired = Kernel.Thread.Gate()
+            let waiterDone = Kernel.Thread.Gate()
+            let holdingRelease = Kernel.Thread.Gate()
 
-            @Test
-            func `cancellation while waiting returns cancelled`() throws {
-                let semaphore = Kernel.Thread.Semaphore(capacity: 1)
-                let token = Kernel.Thread.Semaphore.Cancellation()
-                let acquired = Kernel.Thread.Gate()
-                let waiterDone = Kernel.Thread.Gate()
-                let holdingRelease = Kernel.Thread.Gate()
+            final class Box: @unchecked Sendable { var caught = false }
+            let box = Box()
 
-                final class Box: @unchecked Sendable { var caught = false }
-                let box = Box()
-
-                let t1 = try Kernel.Thread.spawn {
-                    do throws(Kernel.Thread.Semaphore.Error) {
-                        _ = try semaphore.run {
-                            acquired.open()
-                            holdingRelease.wait()
-                        }
-                    } catch {
-
+            let t1 = try Kernel.Thread.spawn {
+                do throws(Kernel.Thread.Semaphore.Error) {
+                    _ = try semaphore.run {
+                        acquired.open()
+                        holdingRelease.wait()
                     }
-                }
+                } catch {
 
-                acquired.wait()
-
-                let t2 = try Kernel.Thread.spawn {
-                    do throws(Kernel.Thread.Semaphore.Error) {
-                        let cancellable = semaphore.run.cancellable(token).poll(.milliseconds(5))
-                        _ = try cancellable {}
-                    } catch .cancelled {
-                        box.caught = true
-                    } catch {
-
-                    }
-                    waiterDone.open()
-                }
-
-                #expect(!waiterDone.wait(timeout: .milliseconds(50)))
-
-                token.cancel()
-
-                #expect(waiterDone.wait(timeout: .seconds(1)))
-                #expect(box.caught)
-                #expect(semaphore.metrics.cancellations == 1)
-
-                holdingRelease.open()
-
-                try t1.join()
-                try t2.join()
-            }
-
-            @Test
-            func `cancellation after body returns cancelled`() throws {
-                let semaphore = Kernel.Thread.Semaphore(capacity: 1)
-                let token = Kernel.Thread.Semaphore.Cancellation()
-
-                token.cancel()
-
-                let cancellable = semaphore.run.cancellable(token)
-                #expect(throws: Kernel.Thread.Semaphore.Error.cancelled) {
-                    _ = try cancellable {
-                        42
-                    }
                 }
             }
 
-            @Test
-            func `shutdown dominates cancellation`() throws {
-                let semaphore = Kernel.Thread.Semaphore(capacity: 1)
-                let token = Kernel.Thread.Semaphore.Cancellation()
-                let acquired = Kernel.Thread.Gate()
-                let waiterDone = Kernel.Thread.Gate()
-                let holdingRelease = Kernel.Thread.Gate()
+            acquired.wait()
 
-                final class Box: @unchecked Sendable { var error: Kernel.Thread.Semaphore.Error? }
-                let box = Box()
-
-                let t1 = try Kernel.Thread.spawn {
-                    do throws(Kernel.Thread.Semaphore.Error) {
-                        _ = try semaphore.run {
-                            acquired.open()
-                            holdingRelease.wait()
-                        }
-                    } catch {
-
-                    }
-                }
-
-                acquired.wait()
-
-                let t2 = try Kernel.Thread.spawn {
-                    do throws(Kernel.Thread.Semaphore.Error) {
-                        let cancellable = semaphore.run.cancellable(token).poll(.milliseconds(5))
-                        _ = try cancellable {}
-                    } catch {
-                        box.error = error
-                    }
-                    waiterDone.open()
-                }
-
-                #expect(!waiterDone.wait(timeout: .milliseconds(50)))
-
-                token.cancel()
-                semaphore.shutdown()
-
-                #expect(waiterDone.wait(timeout: .seconds(1)))
-                #expect(box.error == .shutdown)
-
-                holdingRelease.open()
-
-                try t1.join()
-                try t2.join()
-            }
-        }
-
-        @Suite
-        struct `Metrics` {
-
-            @Test
-            func `metrics track acquisitions and releases`() throws {
-                let semaphore = Kernel.Thread.Semaphore(capacity: 3)
-
-                for _ in 0..<10 {
+            let t2 = try Kernel.Thread.spawn {
+                do throws(Kernel.Thread.Semaphore.Error) {
                     _ = try semaphore.run {}
-                }
+                } catch .shutdown {
+                    box.caught = true
+                } catch {
 
-                let m = semaphore.metrics
-                #expect(m.acquisitions == 10)
-                #expect(m.releases == 10)
-                #expect(m.outstanding == 0)
-                #expect(m.available == 3)
+                }
+                waiterDone.open()
             }
 
-            @Test
-            func `peak tracks maximum outstanding`() throws {
-                let semaphore = Kernel.Thread.Semaphore(capacity: 3)
-                let gate1 = Kernel.Thread.Gate()
-                let gate2 = Kernel.Thread.Gate()
-                let release = Kernel.Thread.Gate()
+            #expect(!waiterDone.wait(timeout: .milliseconds(50)))
 
-                let t1 = try Kernel.Thread.spawn {
-                    do throws(Kernel.Thread.Semaphore.Error) {
-                        _ = try semaphore.run {
-                            gate1.open()
-                            release.wait()
-                        }
-                    } catch {
+            semaphore.shutdown()
 
+            #expect(waiterDone.wait(timeout: .seconds(1)))
+            #expect(box.caught)
+
+            holdingRelease.open()
+
+            try t1.join()
+            try t2.join()
+        }
+    }
+
+    @Suite
+    struct `Cancellation` {
+
+        @Test
+        func `cancellation while waiting returns cancelled`() throws {
+            let semaphore = Kernel.Thread.Semaphore(capacity: 1)
+            let token = Kernel.Thread.Semaphore.Cancellation()
+            let acquired = Kernel.Thread.Gate()
+            let waiterDone = Kernel.Thread.Gate()
+            let holdingRelease = Kernel.Thread.Gate()
+
+            final class Box: @unchecked Sendable { var caught = false }
+            let box = Box()
+
+            let t1 = try Kernel.Thread.spawn {
+                do throws(Kernel.Thread.Semaphore.Error) {
+                    _ = try semaphore.run {
+                        acquired.open()
+                        holdingRelease.wait()
                     }
+                } catch {
+
                 }
-                let t2 = try Kernel.Thread.spawn {
-                    do throws(Kernel.Thread.Semaphore.Error) {
-                        _ = try semaphore.run {
-                            gate2.open()
-                            release.wait()
-                        }
-                    } catch {
+            }
 
-                    }
+            acquired.wait()
+
+            let t2 = try Kernel.Thread.spawn {
+                do throws(Kernel.Thread.Semaphore.Error) {
+                    let cancellable = semaphore.run.cancellable(token).poll(.milliseconds(5))
+                    _ = try cancellable {}
+                } catch .cancelled {
+                    box.caught = true
+                } catch {
+
                 }
+                waiterDone.open()
+            }
 
-                gate1.wait()
-                gate2.wait()
+            #expect(!waiterDone.wait(timeout: .milliseconds(50)))
 
-                #expect(semaphore.metrics.peak >= 2)
+            token.cancel()
 
-                release.open()
+            #expect(waiterDone.wait(timeout: .seconds(1)))
+            #expect(box.caught)
+            #expect(semaphore.metrics.cancellations == 1)
 
-                try t1.join()
-                try t2.join()
+            holdingRelease.open()
 
-                #expect(semaphore.metrics.peak >= 2)
+            try t1.join()
+            try t2.join()
+        }
+
+        @Test
+        func `cancellation after body returns cancelled`() throws {
+            let semaphore = Kernel.Thread.Semaphore(capacity: 1)
+            let token = Kernel.Thread.Semaphore.Cancellation()
+
+            token.cancel()
+
+            let cancellable = semaphore.run.cancellable(token)
+            #expect(throws: Kernel.Thread.Semaphore.Error.cancelled) {
+                _ = try cancellable {
+                    42
+                }
             }
         }
 
+        @Test
+        func `shutdown dominates cancellation`() throws {
+            let semaphore = Kernel.Thread.Semaphore(capacity: 1)
+            let token = Kernel.Thread.Semaphore.Cancellation()
+            let acquired = Kernel.Thread.Gate()
+            let waiterDone = Kernel.Thread.Gate()
+            let holdingRelease = Kernel.Thread.Gate()
+
+            final class Box: @unchecked Sendable { var error: Kernel.Thread.Semaphore.Error? }
+            let box = Box()
+
+            let t1 = try Kernel.Thread.spawn {
+                do throws(Kernel.Thread.Semaphore.Error) {
+                    _ = try semaphore.run {
+                        acquired.open()
+                        holdingRelease.wait()
+                    }
+                } catch {
+
+                }
+            }
+
+            acquired.wait()
+
+            let t2 = try Kernel.Thread.spawn {
+                do throws(Kernel.Thread.Semaphore.Error) {
+                    let cancellable = semaphore.run.cancellable(token).poll(.milliseconds(5))
+                    _ = try cancellable {}
+                } catch {
+                    box.error = error
+                }
+                waiterDone.open()
+            }
+
+            #expect(!waiterDone.wait(timeout: .milliseconds(50)))
+
+            token.cancel()
+            semaphore.shutdown()
+
+            #expect(waiterDone.wait(timeout: .seconds(1)))
+            #expect(box.error == .shutdown)
+
+            holdingRelease.open()
+
+            try t1.join()
+            try t2.join()
+        }
+    }
+
+    @Suite
+    struct `Metrics` {
+
+        @Test
+        func `metrics track acquisitions and releases`() throws {
+            let semaphore = Kernel.Thread.Semaphore(capacity: 3)
+
+            for _ in 0..<10 {
+                _ = try semaphore.run {}
+            }
+
+            let m = semaphore.metrics
+            #expect(m.acquisitions == 10)
+            #expect(m.releases == 10)
+            #expect(m.outstanding == 0)
+            #expect(m.available == 3)
+        }
+
+        @Test
+        func `peak tracks maximum outstanding`() throws {
+            let semaphore = Kernel.Thread.Semaphore(capacity: 3)
+            let gate1 = Kernel.Thread.Gate()
+            let gate2 = Kernel.Thread.Gate()
+            let release = Kernel.Thread.Gate()
+
+            let t1 = try Kernel.Thread.spawn {
+                do throws(Kernel.Thread.Semaphore.Error) {
+                    _ = try semaphore.run {
+                        gate1.open()
+                        release.wait()
+                    }
+                } catch {
+
+                }
+            }
+            let t2 = try Kernel.Thread.spawn {
+                do throws(Kernel.Thread.Semaphore.Error) {
+                    _ = try semaphore.run {
+                        gate2.open()
+                        release.wait()
+                    }
+                } catch {
+
+                }
+            }
+
+            gate1.wait()
+            gate2.wait()
+
+            #expect(semaphore.metrics.peak >= 2)
+
+            release.open()
+
+            try t1.join()
+            try t2.join()
+
+            #expect(semaphore.metrics.peak >= 2)
+        }
     }
 }
